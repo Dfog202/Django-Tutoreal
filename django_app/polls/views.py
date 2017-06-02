@@ -1,7 +1,8 @@
-from django.shortcuts import render, get_object_or_404, get_list_or_404
+from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 from django.http import HttpResponse, Http404
+from django.contrib import messages
 
-from .models import Question
+from .models import Question, Choice
 
 
 def index(request):
@@ -44,4 +45,29 @@ def results(request, question_id):
 
 
 def vote(request, question_id):
-    return HttpResponse("You're votiong on question %s." % question_id)
+    # request 의 method 가 POST 방식일때
+    # 전달받은 데이터중 'choice'키에 해당하는 값을
+    # HttpResponse에 적절히 돌려준다.
+    if request.method == 'POST':
+        data = request.POST
+        try:
+            choice_id = data['choice']
+            choice = Choice.objects.get(id=choice_id)
+            choice.votes += 1
+            choice.save()
+            return redirect('polls:results', question_id)
+        except(KeyError, Choice.DoesNotExist):
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "You didn't select a choice",
+            )
+        # choice키에 해당하는 Choice인스턴스의 vote 값을 1 증가시키고
+        # 데이터베이스에 변경사항을 반영
+        # 이후 results페이지로 redirect
+
+        return redirect('polls:results', question_id)
+    else:
+        return HttpResponse("You're voting on question %s." % question_id)
+
+
